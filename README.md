@@ -63,10 +63,9 @@ The network follows the encoder-decoder design of the paper:
 | Long-range module | StitchViT on `x1` | standard Transformer on `x4` |
 | Second BIM path | background attention, `1 - p` | uncertainty attention, `1 - \|2p - 1\|` |
 | Boundary loss | zero gradient in the official code (softmax over a single channel) | Dice correctly applied to the logits |
-| Sobel | sum over channels, no epsilon | per channel, epsilon, computed in float32 |
-| Ground-truth boundaries | 2 px ring outside the mask | 4 px ring across the boundary |
+| Sobel | sum over channels, no epsilon | per channel, epsilon |
 | Backbone | Res2Net-50 v1b | `timm` Res2Net-50 (`--backbone res2net50d` for the v1b-style variant) |
-| Supervised outputs | 3 | 4 |
+
 
 Each difference is an option (`python train.py --help`), so the paper's behavior can be restored.
 
