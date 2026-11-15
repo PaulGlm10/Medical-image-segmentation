@@ -1,0 +1,11 @@
+# Résultats et données : trop lourds pour GitHub
+runs/
+data/isic2018_256/
+*.npy
+*.pth
+*.zip
+
+# Fichiers temporaires
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/

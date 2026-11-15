@@ -1,0 +1,8 @@
+torch
+timm
+albumentations
+opencv-python
+numpy
+thop
+pytest
+matplotlib
