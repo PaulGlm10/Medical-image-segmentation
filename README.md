@@ -63,10 +63,9 @@ The network follows the encoder-decoder design of the paper:
 | Long-range module | StitchViT on `x1` | standard Transformer on `x4` |
 | Second BIM path | background attention, `1 - p` | uncertainty attention, `1 - \|2p - 1\|` |
 | Boundary loss | zero gradient in the official code (softmax over a single channel) | Dice correctly applied to the logits |
-| Sobel | sum over channels, no epsilon | per channel, epsilon, computed in float32 |
-| Ground-truth boundaries | 2 px ring outside the mask | 4 px ring across the boundary |
+| Sobel | sum over channels, no epsilon | per channel, epsilon |
 | Backbone | Res2Net-50 v1b | `timm` Res2Net-50 (`--backbone res2net50d` for the v1b-style variant) |
-| Supervised outputs | 3 | 4 |
+
 
 Each difference is an option (`python train.py --help`), so the paper's behavior can be restored.
 
@@ -104,75 +103,3 @@ Predictions on the test images where the two models differ most (orange line: gr
 Paper figures are averages over 5 folds. This repository's figures come from a single fold (518 test images),
 with a batch size of 16 instead of 32, so differences of a few tenths of a point are not significant.
 CTO costs 15.36 GFLOPs and U-Net 13.75 GFLOPs for a 256×256 image.
-
-## Usage
-
-```bash
-pip install -r requirements.txt
-python -m pytest tests -q                       # quick tests, CPU only, no data needed
-
-# 1. Data preparation
-python data/prepare_isic.py --images .../ISIC2018_Task1-2_Training_Input \
-                            --masks .../ISIC2018_Task1_Training_GroundTruth --out data/isic2018_256
-
-# 2. Training (90 epochs)
-python train.py --name unet --model unet --data-dir data/isic2018_256
-python train.py --name cto --data-dir data/isic2018_256
-
-# 3. Testing, then comparison table and figures in runs/comparison/
-sh config/isic_test.sh
-
-# 4. Generalization on PH2, without retraining
-python data/prepare_ph2.py --root .../PH2Dataset --out data/ph2_256
-python test.py --run-dir runs/cto/fold_0 --external-dir data/ph2_256 --external-name ph2 --save-pred
-python compare.py --external-dir data/ph2_256 --external-name ph2
-```
-
-The notebook [`notebooks/colab_train.ipynb`](notebooks/colab_train.ipynb) runs all these steps on Google Colab
-(T4 GPU), with results saved to Google Drive.
-
-Each run writes to `runs/<name>/fold_<k>/`: `options.json`, `log.csv`, `last.pth` (automatic resume),
-`best.pth` (best validation Dice), `test_results.csv` and `test_summary.json`.
-
-## Code layout
-
-```
-├── train.py, test.py, compare.py     training, testing, run comparison
-├── config/                           ready-to-run commands
-├── data/                             ISIC 2018 and PH2 preparation
-├── cto/
-│   ├── options.py                    all options
-│   ├── dataset.py                    data, splits, augmentations
-│   ├── losses.py                     CE + IoU, boundary loss, ground-truth boundaries
-│   ├── metrics.py                    Dice and IoU
-│   ├── trainer.py, inference.py      training and testing loops
-│   └── network/
-│       ├── backbone.py               Res2Net-50 (timm)
-│       ├── transformer.py            Transformer on x4
-│       ├── fusion.py                 fusion head
-│       ├── boundary.py               Sobel + BEM
-│       ├── decoder.py                BIM with uncertainty attention
-│       ├── cto_net.py                full network
-│       └── unet.py                   U-Net baseline
-├── figures/                          README images
-├── tests/                            quick tests
-└── notebooks/colab_train.ipynb
-```
-
-## License and data
-
-ISIC 2018 images are released under the CC BY-NC 4.0 license (non-commercial use), and PH2 has its own terms
-of use. Any use of the data, or of weights trained on it, must comply with them.
-
-If you use this work, please cite the original paper:
-
-```bibtex
-@article{lin2025rethinking,
-  title={Rethinking boundary detection in deep learning-based medical image segmentation},
-  author={Lin, Yi and Zhang, Dong and Fang, Xiao and Chen, Yufan and Cheng, Kwang-Ting and Chen, Hao},
-  journal={Medical Image Analysis},
-  volume={103},
-  pages={103615},
-  year={2025}
-}
-```
