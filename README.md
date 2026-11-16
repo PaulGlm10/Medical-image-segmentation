@@ -65,7 +65,6 @@ The network follows the encoder-decoder design of the paper:
 | Second BIM path | background attention, `1 - σ(F)` on the previous decoder features | uncertainty attention, `1 - \|2p - 1\|` on the previous prediction |
 | Boundary loss | zero gradient in the official code (softmax over a single channel) | Dice correctly applied to the logits |
 | Sobel | sum over channels, no epsilon | per channel, epsilon |
-| Ground-truth boundaries | 2 px ring outside the mask | 4 px ring across the boundary |
 | Backbone | Res2Net-50 v1b | `timm` Res2Net-50 (`--backbone res2net50d` for the v1b-style variant) |
 
 Most differences are options (`python train.py --help`): `--bim-attention background`,
