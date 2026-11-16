@@ -1,9 +1,10 @@
-# Medical image segmentation : skin lesion segmentation
+# Medical image segmentation: skin lesion segmentation
 
-A PyTorch implementation of a medical image segmentation
-network that combines a CNN, a Transformer and an edge detection operator:
+A PyTorch implementation of a medical image segmentation network that combines a CNN, a Transformer
+and an edge detection operator.
 
-Inspired from the previous **CTO** work (Convolution, Transformer, and Operator)
+It is inspired by **CTO** (Convolution, Transformer and Operator):
+
 > Y. Lin, D. Zhang, X. Fang, Y. Chen, K.-T. Cheng, H. Chen.
 > *Rethinking boundary detection in deep learning-based medical image segmentation.*
 > Medical Image Analysis 103 (2025) 103615. Official code: https://github.com/xiaofang007/CTO
@@ -61,13 +62,15 @@ The network follows the encoder-decoder design of the paper:
 | | Paper / official code | This repository |
 |---|---|---|
 | Long-range module | StitchViT on `x1` | standard Transformer on `x4` |
-| Second BIM path | background attention, `1 - p` | uncertainty attention, `1 - \|2p - 1\|` |
+| Second BIM path | background attention, `1 - σ(F)` on the previous decoder features | uncertainty attention, `1 - \|2p - 1\|` on the previous prediction |
 | Boundary loss | zero gradient in the official code (softmax over a single channel) | Dice correctly applied to the logits |
 | Sobel | sum over channels, no epsilon | per channel, epsilon |
+| Ground-truth boundaries | 2 px ring outside the mask | 4 px ring across the boundary |
 | Backbone | Res2Net-50 v1b | `timm` Res2Net-50 (`--backbone res2net50d` for the v1b-style variant) |
 
-
-Each difference is an option (`python train.py --help`), so the paper's behavior can be restored.
+Most differences are options (`python train.py --help`): `--bim-attention background`,
+`--edge-mode outside --edge-width 2` and `--backbone res2net50d` bring the model closer to the paper.
+The StitchViT itself is not implemented.
 
 ## Data
 
@@ -97,9 +100,26 @@ Predictions on the test images where the two models differ most (orange line: gr
 | CE-Net | ResNet-34 | 89.1 | 81.6 | – | paper |
 | TransUNet | ResNet-50 | 89.4 | 82.2 | – | paper |
 | CTO (paper) | Res2Net-50 + StitchViT | 90.6 | 84.0 | 62.2 | paper |
-| **U-Net (this repo)** | – | **87.01** | **80.12** | 7.76 | this repo |
-| **CTO (this repo)** | Res2Net-50 + Transformer | **90.52** | **83.94** | 59.19 | this repo |
+| **U-Net (this repo)** | – | **87.11** | **80.97** | 7.76 | this repo |
+| **CTO (this repo)** | Res2Net-50 + Transformer | **90.31** | **83.15** | 59.19 | this repo |
 
 Paper figures are averages over 5 folds. This repository's figures come from a single fold (518 test images),
 with a batch size of 16 instead of 32, so differences of a few tenths of a point are not significant.
 CTO costs 15.36 GFLOPs and U-Net 13.75 GFLOPs for a 256×256 image.
+
+### Generalization to PH2
+
+The two models trained on ISIC 2018 are evaluated as is on the 200 images of PH2
+(another hospital, another dermoscope), without retraining or fine-tuning:
+
+| Model | Dice ISIC 2018 (%) | Dice PH2 (%) | Gap (points) | IoU ISIC 2018 (%) | IoU PH2 (%) |
+|---|---|---|---|---|---|
+| U-Net | 87.11 | 88.37 | +1.26 | 80.97 | 82.15 |
+| **CTO** | **90.31** | **90.76** | **+0.45** | **83.15** | **84.19** |
+
+Neither model loses accuracy on the new dataset, and CTO stays ahead of U-Net (+0.8 Dice points).
+The scores are even slightly higher on PH2, which is expected: its lesions are larger, well centered and
+acquired under uniform conditions, so PH2 is an easier dataset than ISIC 2018. The gap therefore shows
+that the models do not overfit ISIC 2018, not that they perform better on new data.
+
+
